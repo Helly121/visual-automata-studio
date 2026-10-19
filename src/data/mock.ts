@@ -1,0 +1,131 @@
+import type { Project, Challenge, ExampleAutomaton } from '@/types';
+
+export const recentProjects: Project[] = [
+  {
+    id: 'proj-1',
+    name: 'Even Binary Numbers',
+    description: 'DFA accepting binary strings divisible by 2',
+    type: 'dfa',
+    unitId: 'finite-automata',
+    createdAt: '2026-10-15T10:00:00Z',
+    updatedAt: '2026-10-17T14:30:00Z',
+    stateCount: 3,
+    transitionCount: 6,
+  },
+  {
+    id: 'proj-2',
+    name: 'Palindrome Checker',
+    description: 'PDA accepting strings of the form ww^R',
+    type: 'pda',
+    unitId: 'pushdown-automata',
+    createdAt: '2026-10-10T09:00:00Z',
+    updatedAt: '2026-10-13T11:00:00Z',
+    stateCount: 4,
+    transitionCount: 8,
+  },
+  {
+    id: 'proj-3',
+    name: 'Email Regex',
+    description: 'Regular expression for validating email addresses',
+    type: 're',
+    unitId: 'regular-expressions',
+    createdAt: '2026-10-05T08:00:00Z',
+    updatedAt: '2026-10-05T16:00:00Z',
+  },
+];
+
+export const challenges: Challenge[] = [
+  {
+    id: 'ch-1',
+    title: 'Build a DFA for Strings Ending in "01"',
+    description: 'Construct a DFA over {0,1} that accepts all strings ending with the suffix "01".',
+    unitId: 'finite-automata',
+    difficulty: 'easy',
+    xpReward: 100,
+    completed: false,
+    tags: ['DFA', 'Pattern Matching'],
+  },
+  {
+    id: 'ch-2',
+    title: 'Minimise a 6-state DFA',
+    description: 'Apply the table-filling algorithm to reduce the given DFA to its minimal form.',
+    unitId: 'finite-automata',
+    difficulty: 'medium',
+    xpReward: 200,
+    completed: false,
+    tags: ['DFA Minimisation', 'Table Filling'],
+  },
+  {
+    id: 'ch-3',
+    title: 'Write a Regex for Balanced Parentheses',
+    description: 'Attempt to describe balanced parentheses with a regex and explain why it fails.',
+    unitId: 'regular-expressions',
+    difficulty: 'medium',
+    xpReward: 150,
+    completed: false,
+    tags: ['Regular Expressions', 'Limitations'],
+  },
+  {
+    id: 'ch-4',
+    title: 'NFA to DFA Subset Construction',
+    description: 'Convert the given NFA with ε-transitions to an equivalent DFA step by step.',
+    unitId: 'finite-automata',
+    difficulty: 'hard',
+    xpReward: 300,
+    completed: false,
+    tags: ['NFA', 'Subset Construction'],
+  },
+  {
+    id: 'ch-5',
+    title: 'Prove {a^n b^n} is not Regular',
+    description: 'Use the pumping lemma to prove that {a^n b^n | n ≥ 0} is not a regular language.',
+    unitId: 'finite-automata',
+    difficulty: 'hard',
+    xpReward: 350,
+    completed: false,
+    tags: ['Pumping Lemma', 'Non-regular'],
+  },
+];
+
+export const exampleAutomata: ExampleAutomaton[] = [
+  {
+    id: 'ex-1',
+    name: 'DFA: Strings with even number of 0s',
+    description: 'A 2-state DFA over {0,1} accepting strings with an even count of 0s.',
+    type: 'dfa',
+    unitId: 'finite-automata',
+    language: '{ w ∈ {0,1}* | #₀(w) is even }',
+  },
+  {
+    id: 'ex-2',
+    name: 'NFA: Strings ending in 01',
+    description: '3-state NFA accepting binary strings that end with "01".',
+    type: 'nfa',
+    unitId: 'finite-automata',
+    language: '{ w ∈ {0,1}* | w ends in 01 }',
+  },
+  {
+    id: 'ex-3',
+    name: 'PDA: Palindromes over {a,b}',
+    description: 'Non-deterministic PDA recognising palindromes over {a,b}.',
+    type: 'pda',
+    unitId: 'pushdown-automata',
+    language: '{ w ∈ {a,b}* | w = reverse(w) }',
+  },
+  {
+    id: 'ex-4',
+    name: 'TM: Binary Increment',
+    description: 'Turing machine that adds 1 to a binary number on its tape.',
+    type: 'tm',
+    unitId: 'turing-machines',
+    language: 'f(w) = w + 1 (binary)',
+  },
+];
+
+export const mockProgress = {
+  totalXP: 450,
+  streak: 5,
+  completedLessons: 3,
+  totalLessons: 38,
+  lastActiveAt: '2026-10-18T10:00:00Z',
+};

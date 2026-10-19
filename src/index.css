@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 antialiased;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Custom scrollbars for sidebars and panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 dark:bg-gray-800 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-300 dark:bg-gray-700;
+}
+
+/* Prose formatting for theory lessons */
+.prose-lesson {
+  @apply text-gray-800 dark:text-gray-200 text-sm leading-relaxed;
+}
+
+.prose-lesson p {
+  @apply my-3 leading-relaxed;
+}
+
+.prose-lesson code {
+  @apply font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-primary-700 dark:text-primary-300 font-medium;
+}
+
+.prose-lesson pre {
+  @apply font-mono text-xs p-4 rounded-xl bg-gray-900 text-gray-100 overflow-x-auto my-4 border border-gray-800;
+}
+
+.prose-lesson ul {
+  @apply list-disc list-inside space-y-1.5 my-3;
+}
+
+.prose-lesson ol {
+  @apply list-decimal list-inside space-y-1.5 my-3;
+}
