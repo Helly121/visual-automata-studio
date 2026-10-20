@@ -9,8 +9,10 @@ import type { StateNodeData } from '@/engine/types';
  * - Entry arrow indicator when initial
  * - Blue highlight when active during simulation
  * - Double-click to rename inline
+ * - Hover handles for drag-to-connect
  */
 export const StateNode = memo(function StateNode({
+  id,
   data,
   selected,
 }: NodeProps & { data: StateNodeData }) {
@@ -18,9 +20,11 @@ export const StateNode = memo(function StateNode({
   const [draft, setDraft] = useState(data.label);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const [prevLabel, setPrevLabel] = useState(data.label);
+  if (prevLabel !== data.label && !editing) {
+    setPrevLabel(data.label);
     setDraft(data.label);
-  }, [data.label]);
+  }
 
   useEffect(() => {
     if (editing) inputRef.current?.select();
@@ -28,14 +32,14 @@ export const StateNode = memo(function StateNode({
 
   const commit = () => {
     setEditing(false);
-    // Parent handles label change via onNodesChange / updateNodeData
-    if (draft.trim() && draft !== data.label) {
-      // Dispatch custom event — PlaygroundCanvas listens for this
-      const event = new CustomEvent('state-rename', {
-        detail: { draft: draft.trim() },
-        bubbles: true,
-      });
-      inputRef.current?.dispatchEvent(event);
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== data.label) {
+      window.dispatchEvent(
+        new CustomEvent('state-rename', {
+          detail: { id, label: trimmed },
+          bubbles: true,
+        }),
+      );
     }
     setDraft(data.label);
   };
@@ -45,32 +49,32 @@ export const StateNode = memo(function StateNode({
   const isInitial = data.isInitial;
 
   return (
-    <div className="relative flex items-center justify-center">
-      {/* Initial state arrow */}
+    <div className="relative group flex items-center justify-center">
+      {/* Initial state entry arrow */}
       {isInitial && (
-        <div className="absolute -left-8 top-1/2 -translate-y-1/2 flex items-center">
-          <div className="w-6 h-px bg-gray-400 dark:bg-gray-500" />
+        <div className="absolute -left-9 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+          <div className="w-6 h-0.5 bg-primary-600 dark:bg-primary-400" />
           <div
             className="w-0 h-0"
             style={{
               borderTop: '5px solid transparent',
               borderBottom: '5px solid transparent',
-              borderLeft: '8px solid #9ca3af',
+              borderLeft: '8px solid #2563eb',
             }}
           />
         </div>
       )}
 
-      {/* Outer ring for accepting states */}
+      {/* Outer concentric ring for accepting states */}
       {isAccepting && (
         <div
           className={cn(
-            'absolute inset-0 rounded-full border-2',
+            'absolute inset-0 rounded-full border-2 pointer-events-none transition-colors duration-150',
             isActive
-              ? 'border-blue-500'
+              ? 'border-blue-500 ring-2 ring-blue-300 ring-offset-1'
               : selected
                 ? 'border-primary-600'
-                : 'border-gray-400 dark:border-gray-500',
+                : 'border-gray-500 dark:border-gray-400',
           )}
           style={{ margin: '-6px' }}
         />
@@ -78,15 +82,18 @@ export const StateNode = memo(function StateNode({
 
       {/* Main circle */}
       <div
-        onDoubleClick={() => setEditing(true)}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          setEditing(true);
+        }}
         className={cn(
           'w-14 h-14 rounded-full border-2 flex items-center justify-center',
-          'cursor-pointer select-none transition-all duration-150',
+          'cursor-pointer select-none transition-all duration-150 shadow-sm',
           isActive
             ? 'bg-blue-500 border-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900 scale-110'
             : selected
-              ? 'bg-primary-50 border-primary-600 text-primary-700 dark:bg-primary-950 dark:border-primary-400 dark:text-primary-300'
-              : 'bg-white dark:bg-gray-900 border-gray-400 dark:border-gray-500 text-gray-800 dark:text-gray-200 hover:border-gray-600 dark:hover:border-gray-400',
+              ? 'bg-primary-50 border-primary-600 text-primary-700 dark:bg-primary-950 dark:border-primary-400 dark:text-primary-300 ring-2 ring-primary-300 ring-offset-1'
+              : 'bg-white dark:bg-gray-900 border-gray-400 dark:border-gray-500 text-gray-800 dark:text-gray-200 hover:border-primary-500 dark:hover:border-primary-400',
         )}
       >
         {editing ? (
@@ -97,23 +104,45 @@ export const StateNode = memo(function StateNode({
             onBlur={commit}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commit();
-              if (e.key === 'Escape') { setEditing(false); setDraft(data.label); }
+              if (e.key === 'Escape') {
+                setEditing(false);
+                setDraft(data.label);
+              }
             }}
-            className="w-10 text-center text-sm font-semibold bg-transparent outline-none"
-            maxLength={8}
+            className="w-11 text-center text-sm font-semibold bg-transparent outline-none border-b border-primary-500"
+            maxLength={10}
+            autoFocus
           />
         ) : (
-          <span className="text-sm font-semibold font-mono">{data.label}</span>
+          <span className="text-sm font-semibold font-mono tracking-tight">{data.label}</span>
         )}
       </div>
 
-      {/* React Flow handles (invisible connection points) */}
-      <Handle type="target" position={Position.Left} className="opacity-0" />
-      <Handle type="source" position={Position.Right} className="opacity-0" />
-      <Handle type="target" position={Position.Top} id="top-target" className="opacity-0" />
-      <Handle type="source" position={Position.Bottom} id="bottom-source" className="opacity-0" />
-      <Handle type="target" position={Position.Right} id="right-target" className="opacity-0" />
-      <Handle type="source" position={Position.Left} id="left-source" className="opacity-0" />
+      {/* React Flow handles (discoverable on hover) */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left-target"
+        className="!w-2.5 !h-2.5 !bg-primary-500 !border-2 !border-white dark:!border-gray-900 opacity-0 group-hover:opacity-75 hover:!opacity-100 transition-opacity"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right-source"
+        className="!w-2.5 !h-2.5 !bg-primary-500 !border-2 !border-white dark:!border-gray-900 opacity-0 group-hover:opacity-75 hover:!opacity-100 transition-opacity"
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top-target"
+        className="!w-2.5 !h-2.5 !bg-primary-500 !border-2 !border-white dark:!border-gray-900 opacity-0 group-hover:opacity-75 hover:!opacity-100 transition-opacity"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom-source"
+        className="!w-2.5 !h-2.5 !bg-primary-500 !border-2 !border-white dark:!border-gray-900 opacity-0 group-hover:opacity-75 hover:!opacity-100 transition-opacity"
+      />
     </div>
   );
 });
