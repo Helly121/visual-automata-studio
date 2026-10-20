@@ -73,13 +73,13 @@ console.log('✓ Short Answer Validation passed');
 const storage = new MemoryStorageAdapter();
 const pm = new ProgressManager(storage);
 
-const rew1 = pm.completeLesson('lesson-1', 50);
+const rew1 = pm.completeLesson('lesson-1', 'unit-1', 50);
 assert.strictEqual(rew1.isNewReward, true);
 assert.strictEqual(rew1.xpAwarded, 50);
 assert.strictEqual(pm.getState().totalXP, 50);
 
 // Repeated completion must award ZERO additional XP
-const rew2 = pm.completeLesson('lesson-1', 50);
+const rew2 = pm.completeLesson('lesson-1', 'unit-1', 50);
 assert.strictEqual(rew2.isNewReward, false);
 assert.strictEqual(rew2.xpAwarded, 0);
 assert.strictEqual(pm.getState().totalXP, 50);

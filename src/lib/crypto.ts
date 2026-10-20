@@ -14,8 +14,9 @@
 const ITERATIONS = 200_000;
 const KEY_LENGTH = 32; // bytes → 256-bit key
 
-function bufToHex(buf: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buf))
+function bufToHex(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
@@ -79,7 +80,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const derived = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as unknown as BufferSource,
       iterations: ITERATIONS,
       hash: 'SHA-256',
     },

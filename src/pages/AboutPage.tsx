@@ -187,7 +187,7 @@ export function AboutPage() {
                 <span className="text-sm font-semibold text-gray-900 dark:text-white">
                   Phase 3: Formal Transformations & Reductions
                 </span>
-                <Badge variant="purple">Future</Badge>
+                <Badge variant="green">Available</Badge>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                 Interactive automated subset construction (NFA &rarr; DFA), table-filling state minimisation,

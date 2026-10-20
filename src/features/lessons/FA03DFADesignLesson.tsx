@@ -255,11 +255,11 @@ function InteractiveDFATester() {
                     : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
                 }`}
               >
-                {step.stateId}
+                {step.activeStateIds[0] ?? ''}
               </span>
-              {step.symbolRead && (
+              {step.consumedSymbol && (
                 <span className="text-gray-400 dark:text-gray-500 flex items-center">
-                  --({step.symbolRead})--&gt;
+                  --({step.consumedSymbol})--&gt;
                 </span>
               )}
             </span>

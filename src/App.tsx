@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
 import { AppLayout } from '@/layouts/AppLayout';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaygroundPage } from '@/pages/PlaygroundPage';
+import { TransformStudioPage } from '@/pages/TransformStudioPage';
 import { LearnPage } from '@/pages/LearnPage';
 import { LearnUnitPage } from '@/pages/LearnUnitPage';
 import { LearnLessonPage } from '@/pages/LearnLessonPage';
@@ -35,6 +36,7 @@ export default function App() {
           >
             <Route index element={<DashboardPage />} />
             <Route path="playground" element={<PlaygroundPage />} />
+            <Route path="transform" element={<TransformStudioPage />} />
             <Route path="learn" element={<LearnPage />} />
             <Route path="learn/:unitId" element={<LearnUnitPage />} />
             <Route path="learn/:unitId/:lessonId" element={<LearnLessonPage />} />

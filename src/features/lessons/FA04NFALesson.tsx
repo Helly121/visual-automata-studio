@@ -234,10 +234,10 @@ function InteractiveNFATester() {
           {result.trace.map((step, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <span className="text-gray-400 dark:text-gray-500 w-16">
-                {idx === 0 ? 'Start:' : `Read '${step.symbolRead}':`}
+                {idx === 0 ? 'Start:' : `Read '${step.consumedSymbol ?? ''}':`}
               </span>
               <span className="bg-white dark:bg-gray-900 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 font-semibold text-purple-700 dark:text-purple-300">
-                {'{ ' + step.activeStates.join(', ') + ' }'}
+                {'{ ' + step.activeStateIds.join(', ') + ' }'}
               </span>
               {idx === result.trace.length - 1 && (
                 <span className={`text-[11px] font-bold ${result.accepted ? 'text-emerald-600' : 'text-rose-600'}`}>

@@ -41,6 +41,13 @@ describe('Visual Automata Studio - Route Integration Tests', () => {
     expect(screen.getByText(/Design, simulate, and explore finite automata/i)).toBeDefined();
   });
 
+  it('renders Transformation Studio at "/transform"', () => {
+    window.history.pushState({}, 'Transform', '/transform');
+    render(<App />);
+    expect(screen.getByRole('heading', { name: /^Automata Transformation Studio$/i })).toBeDefined();
+    expect(screen.getByText(/Subset Construction Table/i)).toBeDefined();
+  });
+
   it('renders Learn syllabus at "/learn"', () => {
     window.history.pushState({}, 'Learn', '/learn');
     render(<App />);

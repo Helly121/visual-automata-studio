@@ -3,3 +3,4 @@ export * from './validate';
 export * from './simulate';
 export * from './persistence';
 export * from './examples';
+export * from './transform';
