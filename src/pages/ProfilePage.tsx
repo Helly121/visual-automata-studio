@@ -5,13 +5,13 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { useLearningProgress, progressManager } from '@/features/learning';
 import { units } from '@/data/units';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Button, Badge } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { cn } from '@/utils';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ProfilePage() {
-  const { user, logout, updateDisplayName, isConfigured } = useAuth();
+  const { user, logout, updateDisplayName } = useAuth();
   const navigate = useNavigate();
   const { state } = useLearningProgress();
   const stats = progressManager.getProgressStats(units);
@@ -75,9 +75,6 @@ export function ProfilePage() {
               {user?.displayName ?? 'Guest'}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user?.email ?? '—'}</p>
-            {!isConfigured && (
-              <Badge variant="gray" className="mt-1.5 text-[10px]">Auth not configured</Badge>
-            )}
           </div>
         </div>
 
@@ -128,7 +125,7 @@ export function ProfilePage() {
               <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">Display name</span>
             </div>
-            {!isEditing && isConfigured && (
+            {!isEditing && (
               <button
                 onClick={() => { setIsEditing(true); setNameInput(user?.displayName ?? ''); setNameError(null); }}
                 className="flex items-center gap-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
@@ -201,22 +198,20 @@ export function ProfilePage() {
       </div>
 
       {/* Sign out */}
-      {isConfigured && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-card p-6">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Sign out</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-            Your progress is saved to your account and will be available when you sign back in.
-          </p>
-          <Button
-            variant="danger"
-            size="sm"
-            leftIcon={<LogOut className="w-4 h-4" />}
-            onClick={handleLogout}
-          >
-            Sign out
-          </Button>
-        </div>
-      )}
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-card p-6">
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Sign out</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Your progress is saved to your account and will be available when you sign back in.
+        </p>
+        <Button
+          variant="danger"
+          size="sm"
+          leftIcon={<LogOut className="w-4 h-4" />}
+          onClick={handleLogout}
+        >
+          Sign out
+        </Button>
+      </div>
     </div>
   );
 }

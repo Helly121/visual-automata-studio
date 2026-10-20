@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Cpu, Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Cpu, Eye, EyeOff, UserPlus, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui';
 import { cn } from '@/utils';
@@ -63,7 +63,7 @@ const strengthTextColor = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SignUpPage() {
-  const { signUp, isConfigured } = useAuth();
+  const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -75,7 +75,6 @@ export function SignUpPage() {
     name?: string; email?: string; password?: string; confirm?: string; form?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const strength = passwordStrength(password);
 
@@ -105,29 +104,12 @@ export function SignUpPage() {
     if (error) {
       setErrors({ form: error });
     } else {
-      // Supabase may require email confirmation depending on project settings.
-      // We show a success message and redirect to login after a short delay.
-      setSuccessMessage(
-        'Account created! Check your email for a confirmation link, then sign in.',
-      );
-      setTimeout(() => navigate('/login'), 4000);
+      // Account is created and session started — go straight to the app
+      navigate('/', { replace: true });
     }
   };
 
-  if (successMessage) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm text-center space-y-4">
-          <div className="w-14 h-14 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-7 h-7 text-green-600 dark:text-green-400" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">You&apos;re almost in!</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{successMessage}</p>
-          <p className="text-xs text-gray-400 dark:text-gray-500">Redirecting to sign in…</p>
-        </div>
-      </div>
-    );
-  }
+  // successMessage state removed — local auth logs in immediately on sign-up.
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
@@ -148,17 +130,6 @@ export function SignUpPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Join VIT Pune&apos;s Automata Theory platform.
           </p>
-
-          {/* Supabase not configured banner */}
-          {!isConfigured && (
-            <div className="flex items-start gap-2.5 p-3 mb-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-300">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>
-                Supabase is not configured. Copy <code className="font-mono">.env.example</code> to{' '}
-                <code className="font-mono">.env</code> and add your credentials to enable authentication.
-              </span>
-            </div>
-          )}
 
           {/* Form-level error */}
           {errors.form && (
@@ -320,7 +291,6 @@ export function SignUpPage() {
               fullWidth
               isLoading={isSubmitting}
               leftIcon={<UserPlus className="w-4 h-4" />}
-              disabled={!isConfigured}
             >
               Create account
             </Button>

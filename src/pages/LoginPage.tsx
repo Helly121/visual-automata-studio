@@ -21,7 +21,7 @@ function validatePassword(password: string): string | null {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function LoginPage() {
-  const { login, isConfigured } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const nextPath = searchParams.get('next') ?? '/';
@@ -60,7 +60,7 @@ export function LoginPage() {
         {/* Brand */}
         <div className="flex items-center gap-2.5 mb-8 justify-center">
           <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center shadow-sm">
-            <Cpu className="w-4.5 h-4.5 text-white w-5 h-5" />
+            <Cpu className="w-5 h-5 text-white" />
           </div>
           <div className="leading-tight">
             <div className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">Visual Automata</div>
@@ -73,17 +73,6 @@ export function LoginPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Welcome back — your progress is waiting.
           </p>
-
-          {/* Supabase not configured banner */}
-          {!isConfigured && (
-            <div className="flex items-start gap-2.5 p-3 mb-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-300">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>
-                Supabase is not configured. Copy <code className="font-mono">.env.example</code> to{' '}
-                <code className="font-mono">.env</code> and add your credentials to enable authentication.
-              </span>
-            </div>
-          )}
 
           {/* Form-level error */}
           {errors.form && (
@@ -170,7 +159,6 @@ export function LoginPage() {
               fullWidth
               isLoading={isSubmitting}
               leftIcon={<LogIn className="w-4 h-4" />}
-              disabled={!isConfigured}
             >
               Sign in
             </Button>

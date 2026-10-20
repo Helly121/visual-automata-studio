@@ -6,8 +6,16 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import {
+  getUserByEmail,
+  getUserById,
+  createUser,
+  updateUser,
+  getSession,
+  createSession,
+  clearSession,
+} from '@/lib/localDb';
+import { hashPassword, verifyPassword } from '@/lib/crypto';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,9 +27,9 @@ export interface AuthUser {
 
 export interface AuthState {
   user: AuthUser | null;
-  session: Session | null;
   isLoading: boolean;
-  isConfigured: boolean;
+  /** Always true — local auth is always available, no env-var setup required. */
+  isConfigured: true;
 }
 
 export interface SignUpCredentials {
@@ -46,113 +54,92 @@ interface AuthContextValue extends AuthState {
   updateDisplayName: (name: string) => Promise<AuthResult>;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function toAuthUser(user: User): AuthUser {
-  return {
-    id: user.id,
-    email: user.email ?? '',
-    displayName:
-      (user.user_metadata?.display_name as string | undefined) ??
-      (user.user_metadata?.name as string | undefined) ??
-      user.email?.split('@')[0] ??
-      'User',
-  };
-}
-
-function friendlyError(err: AuthError | null | unknown): string {
-  if (!err) return 'An unknown error occurred.';
-  const msg = (err as AuthError).message ?? String(err);
-
-  if (msg.includes('Invalid login credentials')) return 'Incorrect email or password.';
-  if (msg.includes('Email not confirmed')) return 'Please confirm your email before signing in.';
-  if (msg.includes('User already registered')) return 'An account with this email already exists.';
-  if (msg.includes('Password should be')) return 'Password must be at least 6 characters.';
-  if (msg.includes('Unable to validate email')) return 'Please enter a valid email address.';
-  if (msg.includes('signup is disabled')) return 'Sign-ups are currently disabled. Contact the administrator.';
-  return msg;
-}
-
 // ─── Context ─────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // On mount: restore session from localStorage (Supabase handles this automatically)
+  // On mount: restore session from localStorage
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setIsLoading(false);
-      return;
+    const session = getSession();
+    if (session) {
+      const stored = getUserById(session.userId);
+      if (stored) {
+        setUser({ id: stored.id, email: stored.email, displayName: stored.displayName });
+      } else {
+        // Session references a deleted user — clear it
+        clearSession();
+      }
     }
-
-    // Retrieve the current session
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      setSession(existingSession);
-      setUser(existingSession?.user ? toAuthUser(existingSession.user) : null);
-      setIsLoading(false);
-    });
-
-    // Subscribe to future auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, updatedSession) => {
-        setSession(updatedSession);
-        setUser(updatedSession?.user ? toAuthUser(updatedSession.user) : null);
-        setIsLoading(false);
-      },
-    );
-
-    return () => subscription.unsubscribe();
+    setIsLoading(false);
   }, []);
 
-  const signUp = useCallback(async ({ name, email, password }: SignUpCredentials): Promise<AuthResult> => {
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: { display_name: name.trim() },
-      },
-    });
-    return { error: error ? friendlyError(error) : null };
-  }, []);
+  const signUp = useCallback(
+    async ({ name, email, password }: SignUpCredentials): Promise<AuthResult> => {
+      const trimmedEmail = email.trim().toLowerCase();
+      const trimmedName = name.trim();
 
-  const login = useCallback(async ({ email, password }: LoginCredentials): Promise<AuthResult> => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-    return { error: error ? friendlyError(error) : null };
-  }, []);
+      if (getUserByEmail(trimmedEmail)) {
+        return { error: 'An account with this email already exists.' };
+      }
+
+      const passwordHash = await hashPassword(password);
+      const stored = createUser(trimmedEmail, trimmedName, passwordHash);
+      createSession(stored.id);
+      setUser({ id: stored.id, email: stored.email, displayName: stored.displayName });
+      return { error: null };
+    },
+    [],
+  );
+
+  const login = useCallback(
+    async ({ email, password }: LoginCredentials): Promise<AuthResult> => {
+      const stored = getUserByEmail(email.trim());
+      if (!stored) {
+        return { error: 'Incorrect email or password.' };
+      }
+
+      const valid = await verifyPassword(password, stored.passwordHash);
+      if (!valid) {
+        return { error: 'Incorrect email or password.' };
+      }
+
+      createSession(stored.id);
+      setUser({ id: stored.id, email: stored.email, displayName: stored.displayName });
+      return { error: null };
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    clearSession();
+    setUser(null);
   }, []);
 
-  const updateDisplayName = useCallback(async (name: string): Promise<AuthResult> => {
-    const trimmed = name.trim();
-    if (!trimmed) return { error: 'Display name cannot be empty.' };
+  const updateDisplayName = useCallback(
+    async (name: string): Promise<AuthResult> => {
+      const trimmed = name.trim();
+      if (!trimmed) return { error: 'Display name cannot be empty.' };
+      if (!user) return { error: 'Not signed in.' };
 
-    const { data, error } = await supabase.auth.updateUser({
-      data: { display_name: trimmed },
-    });
+      const updated = updateUser(user.id, { displayName: trimmed });
+      if (!updated) return { error: 'Failed to update display name.' };
 
-    if (error) return { error: friendlyError(error) };
-
-    // Reflect update immediately in local state
-    if (data.user) setUser(toAuthUser(data.user));
-    return { error: null };
-  }, []);
+      setUser({ ...user, displayName: trimmed });
+      return { error: null };
+    },
+    [user],
+  );
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        session,
         isLoading,
-        isConfigured: isSupabaseConfigured,
+        isConfigured: true,
         signUp,
         login,
         logout,

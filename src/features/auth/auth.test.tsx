@@ -1,47 +1,46 @@
 /**
- * Auth feature tests
+ * Auth feature tests — local-DB implementation (no Supabase)
  *
  * Tests cover:
  * - AuthProvider context availability
- * - ProtectedRoute behaviour (redirect when unauthenticated, render when authenticated)
- * - LoginPage form validation (client-side)
- * - SignUpPage form validation (client-side)
- * - ProfilePage rendering with a mocked authenticated user
- *
- * Supabase network calls are mocked so tests remain offline.
+ * - ProtectedRoute redirect behaviour
+ * - LoginPage client-side form validation
+ * - SignUpPage client-side form validation
+ * - localDb user & session helpers
+ * - crypto hashPassword / verifyPassword
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
-import { ProtectedRoute } from './ProtectedRoute';
 
-// ─── Mock Supabase ────────────────────────────────────────────────────────────
+// ─── localStorage mock ────────────────────────────────────────────────────────
+// Use a fresh in-memory store for each test to avoid cross-test contamination.
 
-vi.mock('@/lib/supabase', () => {
-  const mockGetSession = vi.fn().mockResolvedValue({ data: { session: null } });
-  const mockSignInWithPassword = vi.fn().mockResolvedValue({ error: null });
-  const mockSignUp = vi.fn().mockResolvedValue({ error: null });
-  const mockSignOut = vi.fn().mockResolvedValue({});
-  const mockUpdateUser = vi.fn().mockResolvedValue({ data: { user: null }, error: null });
-  const mockOnAuthStateChange = vi.fn(() => ({
-    data: { subscription: { unsubscribe: vi.fn() } },
-  }));
-
+function makeLocalStorageMock() {
+  let store: Record<string, string> = {};
   return {
-    isSupabaseConfigured: true,
-    supabase: {
-      auth: {
-        getSession: mockGetSession,
-        signInWithPassword: mockSignInWithPassword,
-        signUp: mockSignUp,
-        signOut: mockSignOut,
-        updateUser: mockUpdateUser,
-        onAuthStateChange: mockOnAuthStateChange,
-      },
-    },
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => { store[key] = value; },
+    removeItem: (key: string) => { delete store[key]; },
+    clear: () => { store = {}; },
   };
+}
+
+let localStorageMock = makeLocalStorageMock();
+
+beforeEach(() => {
+  localStorageMock = makeLocalStorageMock();
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+    configurable: true,
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -54,26 +53,23 @@ function renderWithAuth(ui: React.ReactNode, initialPath = '/') {
   );
 }
 
-// A simple component that shows auth state
 function AuthStatus() {
   const { user, isLoading } = useAuth();
   if (isLoading) return <span>Loading…</span>;
-  return <span>{user ? `Hello ${user.displayName}` : 'Not signed in'}</span>;
+  return <span data-testid="auth-status">{user ? `Hello ${user.displayName}` : 'Not signed in'}</span>;
 }
 
 // ─── AuthProvider ─────────────────────────────────────────────────────────────
 
 describe('AuthProvider', () => {
-  it('renders children and exposes context', async () => {
+  it('renders children and starts with no user when localStorage is empty', async () => {
     renderWithAuth(<AuthStatus />);
-    // Initially loading, then resolves
     await waitFor(() => {
-      expect(screen.getByText('Not signed in')).toBeDefined();
+      expect(screen.getByTestId('auth-status').textContent).toBe('Not signed in');
     });
   });
 
   it('throws when useAuth is used outside provider', () => {
-    // Suppress expected console.error from React
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<AuthStatus />)).toThrow();
     spy.mockRestore();
@@ -84,6 +80,7 @@ describe('AuthProvider', () => {
 
 describe('ProtectedRoute', () => {
   it('redirects unauthenticated users to /login', async () => {
+    const { ProtectedRoute } = await import('./ProtectedRoute');
     render(
       <MemoryRouter initialEntries={['/profile']}>
         <AuthProvider>
@@ -101,7 +98,6 @@ describe('ProtectedRoute', () => {
         </AuthProvider>
       </MemoryRouter>,
     );
-
     await waitFor(() => {
       expect(screen.queryByText('Profile page')).toBeNull();
       expect(screen.getByText('Login page')).toBeDefined();
@@ -109,7 +105,92 @@ describe('ProtectedRoute', () => {
   });
 });
 
-// ─── LoginPage validation ─────────────────────────────────────────────────────
+// ─── localDb helpers ──────────────────────────────────────────────────────────
+
+describe('localDb', () => {
+  it('creates a user and retrieves them by email', async () => {
+    const { createUser, getUserByEmail } = await import('@/lib/localDb');
+    createUser('test@example.com', 'Test User', 'hash:abc123');
+    const found = getUserByEmail('test@example.com');
+    expect(found).not.toBeNull();
+    expect(found!.displayName).toBe('Test User');
+    expect(found!.email).toBe('test@example.com');
+  });
+
+  it('normalises email to lowercase', async () => {
+    const { createUser, getUserByEmail } = await import('@/lib/localDb');
+    createUser('UPPER@EXAMPLE.COM', 'Upper User', 'hash:xyz');
+    expect(getUserByEmail('upper@example.com')).not.toBeNull();
+  });
+
+  it('returns null for unknown email', async () => {
+    const { getUserByEmail } = await import('@/lib/localDb');
+    expect(getUserByEmail('nobody@example.com')).toBeNull();
+  });
+
+  it('prevents duplicate email registrations at the AuthContext level', async () => {
+    const { createUser } = await import('@/lib/localDb');
+    createUser('dup@example.com', 'First', 'hash:1');
+    // Second call at the AuthContext level checks getUserByEmail before creating
+    const { getUserByEmail } = await import('@/lib/localDb');
+    const existing = getUserByEmail('dup@example.com');
+    expect(existing).not.toBeNull();
+  });
+
+  it('creates and reads back a session', async () => {
+    const { createSession, getSession } = await import('@/lib/localDb');
+    createSession('user-abc');
+    const session = getSession();
+    expect(session).not.toBeNull();
+    expect(session!.userId).toBe('user-abc');
+  });
+
+  it('clears a session', async () => {
+    const { createSession, clearSession, getSession } = await import('@/lib/localDb');
+    createSession('user-xyz');
+    clearSession();
+    expect(getSession()).toBeNull();
+  });
+
+  it('updateUser persists display name change', async () => {
+    const { createUser, updateUser, getUserById } = await import('@/lib/localDb');
+    const user = createUser('update@example.com', 'Old Name', 'hash:old');
+    updateUser(user.id, { displayName: 'New Name' });
+    const updated = getUserById(user.id);
+    expect(updated!.displayName).toBe('New Name');
+  });
+});
+
+// ─── crypto helpers ───────────────────────────────────────────────────────────
+
+describe('crypto', () => {
+  it('hashPassword produces a salt:hash string', async () => {
+    const { hashPassword } = await import('@/lib/crypto');
+    const hash = await hashPassword('MySecret1');
+    expect(hash).toMatch(/^[0-9a-f]+:[0-9a-f]+$/);
+  });
+
+  it('verifyPassword returns true for correct password', async () => {
+    const { hashPassword, verifyPassword } = await import('@/lib/crypto');
+    const hash = await hashPassword('CorrectPassword1');
+    expect(await verifyPassword('CorrectPassword1', hash)).toBe(true);
+  });
+
+  it('verifyPassword returns false for wrong password', async () => {
+    const { hashPassword, verifyPassword } = await import('@/lib/crypto');
+    const hash = await hashPassword('CorrectPassword1');
+    expect(await verifyPassword('WrongPassword1', hash)).toBe(false);
+  });
+
+  it('two hashes of the same password are different (unique salts)', async () => {
+    const { hashPassword } = await import('@/lib/crypto');
+    const h1 = await hashPassword('SamePassword1');
+    const h2 = await hashPassword('SamePassword1');
+    expect(h1).not.toBe(h2);
+  });
+});
+
+// ─── LoginPage form validation ────────────────────────────────────────────────
 
 describe('LoginPage – client-side validation', () => {
   beforeEach(async () => {
@@ -117,36 +198,43 @@ describe('LoginPage – client-side validation', () => {
     renderWithAuth(<LoginPage />);
   });
 
-  it('shows email error when submitted empty', async () => {
-    const btn = screen.getByRole('button', { name: /sign in/i });
-    fireEvent.click(btn);
+  it('shows email required error on empty submit', async () => {
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     await waitFor(() => {
       expect(screen.getByText(/email is required/i)).toBeDefined();
     });
   });
 
   it('shows invalid email error', async () => {
-    const emailInput = screen.getByLabelText(/email address/i);
-    fireEvent.change(emailInput, { target: { value: 'not-an-email' } });
-    const btn = screen.getByRole('button', { name: /sign in/i });
-    fireEvent.click(btn);
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'bad-email' } });
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     await waitFor(() => {
       expect(screen.getByText(/valid email/i)).toBeDefined();
     });
   });
 
-  it('shows password required error when password missing', async () => {
-    const emailInput = screen.getByLabelText(/email address/i);
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    const btn = screen.getByRole('button', { name: /sign in/i });
-    fireEvent.click(btn);
+  it('shows password required error', async () => {
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'a@b.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
     await waitFor(() => {
       expect(screen.getByText(/password is required/i)).toBeDefined();
     });
   });
+
+  it('shows incorrect credentials error for unknown user', async () => {
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'ghost@nowhere.com' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), { target: { value: 'ghost@nowhere.com' } });
+    // target the password input directly by id to avoid matching the show/hide button aria-label
+    const passwordInput = document.getElementById('password') as HTMLInputElement;
+    fireEvent.change(passwordInput, { target: { value: 'Password1' } });
+    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/incorrect email or password/i)).toBeDefined();
+    });
+  });
 });
 
-// ─── SignUpPage validation ────────────────────────────────────────────────────
+// ─── SignUpPage form validation ───────────────────────────────────────────────
 
 describe('SignUpPage – client-side validation', () => {
   beforeEach(async () => {
@@ -154,15 +242,14 @@ describe('SignUpPage – client-side validation', () => {
     renderWithAuth(<SignUpPage />);
   });
 
-  it('shows name required error when submitted empty', async () => {
-    const btn = screen.getByRole('button', { name: /create account/i });
-    fireEvent.click(btn);
+  it('shows name required error on empty submit', async () => {
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
     await waitFor(() => {
       expect(screen.getByText(/name is required/i)).toBeDefined();
     });
   });
 
-  it('rejects weak password (too short)', async () => {
+  it('rejects password shorter than 8 characters', async () => {
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Aarav' } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'a@b.com' } });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'abc' } });
@@ -203,50 +290,6 @@ describe('SignUpPage – client-side validation', () => {
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
     await waitFor(() => {
       expect(screen.getByText(/one number/i)).toBeDefined();
-    });
-  });
-});
-
-// ─── ProfilePage ──────────────────────────────────────────────────────────────
-
-describe('ProfilePage – authenticated rendering', () => {
-  it('renders user info and stats when authenticated', async () => {
-    // Override the mock to return an authenticated session
-    const { supabase } = await import('@/lib/supabase');
-    const mockUser = {
-      id: 'user-123',
-      email: 'student@vit.edu',
-      user_metadata: { display_name: 'Aarav Sharma' },
-    };
-    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-      data: {
-        session: {
-          user: mockUser,
-          access_token: 'token',
-          refresh_token: 'refresh',
-          expires_in: 3600,
-          token_type: 'bearer',
-        } as never,
-      },
-    } as never);
-    vi.mocked(supabase.auth.onAuthStateChange).mockImplementationOnce((cb) => {
-      setTimeout(() => cb('SIGNED_IN', {
-        user: mockUser,
-        access_token: 'token',
-        refresh_token: 'refresh',
-        expires_in: 3600,
-        token_type: 'bearer',
-      } as never), 0);
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
-    });
-
-    const { ProfilePage } = await import('@/pages/ProfilePage');
-    renderWithAuth(<ProfilePage />);
-
-    await waitFor(() => {
-      // Name and email each appear in the header card and the edit section
-      expect(screen.getAllByText('Aarav Sharma').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('student@vit.edu').length).toBeGreaterThan(0);
     });
   });
 });

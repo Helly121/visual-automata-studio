@@ -1,21 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
-import { CloudProgressAdapter } from './cloudProgressAdapter';
+import { LocalUserProgressAdapter } from './localProgressAdapter';
 import { progressManager, EMPTY_STATE } from '@/features/learning/progressStore';
 import { LocalStorageAdapter, MemoryStorageAdapter } from '@/features/learning/storageAdapter';
 
 const GUEST_STORAGE_KEY = 'vas_learning_progress_v1';
 
 /**
- * Synchronizes the `progressManager` singleton's storage adapter with the
+ * Synchronises the `progressManager` singleton's storage adapter with the
  * current authentication state.
  *
- * - Logged in  → use CloudProgressAdapter (Supabase, per-user isolated)
- * - Logged out → use MemoryStorageAdapter (guest / ephemeral)
+ * - Logged in  → LocalUserProgressAdapter  (namespaced per user-ID, fully isolated)
+ * - Logged out → MemoryStorageAdapter       (ephemeral, no cross-user leakage)
  *
- * Guest migration: when a user logs in and has pre-existing localStorage data,
- * we merge it into their cloud record (cloud wins on conflicts to avoid
- * overwriting further progress made on other devices).
+ * Guest migration: if the user has anonymous progress saved under the shared
+ * localStorage key, it is copied into their personal namespace on first login
+ * so they don't lose work done before signing in.
  */
 export function useProgressSync() {
   const { user, isLoading } = useAuth();
@@ -25,34 +25,25 @@ export function useProgressSync() {
     if (isLoading) return;
 
     const userId = user?.id ?? null;
-
-    // Nothing changed
     if (userId === prevUserId.current) return;
     prevUserId.current = userId;
 
     if (userId) {
-      // User just logged in
-      const cloudAdapter = new CloudProgressAdapter(userId);
+      const userAdapter = new LocalUserProgressAdapter(userId);
 
-      cloudAdapter.initialize().then(() => {
-        // Guest migration: if there is local progress and the cloud has none,
-        // seed the cloud record with the guest's progress so they don't lose work.
-        const cloudData = cloudAdapter.getItem(GUEST_STORAGE_KEY);
-        if (!cloudData) {
-          const localAdapter = new LocalStorageAdapter();
-          const localData = localAdapter.getItem(GUEST_STORAGE_KEY);
-          if (localData) {
-            // Write local data to cloud
-            cloudAdapter.setItem(GUEST_STORAGE_KEY, localData);
-          }
+      // Guest migration: if user has no progress yet, seed from the shared guest key
+      const existingProgress = userAdapter.getItem(GUEST_STORAGE_KEY);
+      if (!existingProgress) {
+        const guestAdapter = new LocalStorageAdapter();
+        const guestData = guestAdapter.getItem(GUEST_STORAGE_KEY);
+        if (guestData) {
+          userAdapter.setItem(GUEST_STORAGE_KEY, guestData);
         }
+      }
 
-        // Switch progressManager to cloud
-        progressManager.reinitialize(cloudAdapter);
-      });
+      progressManager.reinitialize(userAdapter);
     } else {
-      // User logged out → switch to ephemeral in-memory adapter
-      // (avoids cross-contamination between different accounts on same browser)
+      // Logged out — clear to empty in-memory state (no cross-account leakage)
       progressManager.reinitialize(new MemoryStorageAdapter(), EMPTY_STATE);
     }
   }, [user, isLoading]);

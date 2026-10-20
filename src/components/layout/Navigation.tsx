@@ -65,12 +65,11 @@ function NavItem({
 // ─── User account menu ────────────────────────────────────────────────────────
 
 function UserAccountMenu({ onClose }: { onClose?: () => void }) {
-  const { user, logout, isConfigured } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
@@ -94,19 +93,6 @@ function UserAccountMenu({ onClose }: { onClose?: () => void }) {
     onClose?.();
     navigate('/profile');
   };
-
-  if (!isConfigured) {
-    return (
-      <NavLink
-        to="/login"
-        onClick={onClose}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors duration-150"
-      >
-        <LogIn className="w-4 h-4 flex-shrink-0" />
-        Sign in
-      </NavLink>
-    );
-  }
 
   if (!user) {
     return (

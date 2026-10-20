@@ -1,4 +1,4 @@
 export * from './AuthContext';
 export * from './ProtectedRoute';
-export * from './cloudProgressAdapter';
+export * from './localProgressAdapter';
 export * from './useProgressSync';
