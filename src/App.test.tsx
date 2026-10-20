@@ -30,13 +30,15 @@ describe('Visual Automata Studio - Route Integration Tests', () => {
     window.history.pushState({}, 'Unit', '/learn/finite-automata');
     render(<App />);
     expect(screen.getByRole('heading', { name: /Finite Automata/i })).toBeDefined();
-    expect(screen.getByText(/Deterministic Finite Automata/i)).toBeDefined();
+    // Use getAllByText because the lesson title appears in both sidebar and main content
+    expect(screen.getAllByText(/Deterministic Finite Automata/i).length).toBeGreaterThan(0);
   });
 
   it('renders Lesson page at "/learn/finite-automata/fa-02-dfa"', () => {
     window.history.pushState({}, 'Lesson', '/learn/finite-automata/fa-02-dfa');
     render(<App />);
-    expect(screen.getByText(/Deterministic Finite Automata/i)).toBeDefined();
+    // Lesson title appears in breadcrumb and h1 — use getAllByText
+    expect(screen.getAllByText(/Deterministic Finite Automata/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Formal Definition/i)).toBeDefined();
   });
 
