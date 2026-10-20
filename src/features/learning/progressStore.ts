@@ -42,6 +42,17 @@ export class ProgressManager {
     this.state = this.load();
   }
 
+  /**
+   * Hot-swap the storage adapter (e.g. when a user logs in or out).
+   * Reloads state from the new adapter and notifies all subscribers.
+   * If `forcedState` is provided it is used directly instead of loading from storage.
+   */
+  public reinitialize(adapter: StorageAdapter, forcedState?: LearningState): void {
+    this.adapter = adapter;
+    this.state = forcedState ?? this.load();
+    this.notify();
+  }
+
   public getState(): LearningState {
     return { ...this.state };
   }
