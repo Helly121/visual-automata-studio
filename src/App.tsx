@@ -24,8 +24,15 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
 
-          {/* ── App shell ── */}
-          <Route path="/" element={<AppLayout />}>
+          {/* ── App shell — requires authentication for every child route ── */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<DashboardPage />} />
             <Route path="playground" element={<PlaygroundPage />} />
             <Route path="learn" element={<LearnPage />} />
@@ -34,14 +41,7 @@ export default function App() {
             <Route path="challenges" element={<ChallengesPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="about" element={<AboutPage />} />
-            <Route
-              path="profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
