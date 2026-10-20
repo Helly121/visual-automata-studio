@@ -1,7 +1,11 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar, MobileNav } from '@/components/layout/Navigation';
+import { useProgressSync } from '@/features/auth/useProgressSync';
 
 export function AppLayout() {
+  // Sync the progressManager adapter whenever auth state changes
+  useProgressSync();
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
       <Sidebar />

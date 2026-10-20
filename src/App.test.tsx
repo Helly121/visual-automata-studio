@@ -1,8 +1,30 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import App from './App';
+import { createUser, createSession } from './lib/localDb';
+
+/**
+ * Route integration tests.
+ *
+ * All app routes are now protected. We seed localStorage with a valid user
+ * + session before each test so the ProtectedRoute passes and the page renders.
+ */
+
+function seedAuthSession() {
+  // Register a test user and create an active session.
+  // createUser is idempotent per-test because localStorage is fresh each run
+  // (jsdom resets between test files; within this file we rely on beforeEach).
+  const user = createUser('test@vas.dev', 'Test User', 'hash:test');
+  createSession(user.id);
+}
 
 describe('Visual Automata Studio - Route Integration Tests', () => {
+  beforeEach(() => {
+    // Clear any leftover auth state between tests in this file
+    localStorage.clear();
+    seedAuthSession();
+  });
+
   it('renders Dashboard at "/"', () => {
     window.history.pushState({}, 'Dashboard', '/');
     const { container } = render(<App />);
@@ -30,13 +52,13 @@ describe('Visual Automata Studio - Route Integration Tests', () => {
     window.history.pushState({}, 'Unit', '/learn/finite-automata');
     render(<App />);
     expect(screen.getByRole('heading', { name: /Finite Automata/i })).toBeDefined();
-    expect(screen.getByText(/Deterministic Finite Automata/i)).toBeDefined();
+    expect(screen.getAllByText(/Deterministic Finite Automata/i).length).toBeGreaterThan(0);
   });
 
   it('renders Lesson page at "/learn/finite-automata/fa-02-dfa"', () => {
     window.history.pushState({}, 'Lesson', '/learn/finite-automata/fa-02-dfa');
     render(<App />);
-    expect(screen.getByText(/Deterministic Finite Automata/i)).toBeDefined();
+    expect(screen.getAllByText(/Deterministic Finite Automata/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Formal Definition/i)).toBeDefined();
   });
 
@@ -66,5 +88,15 @@ describe('Visual Automata Studio - Route Integration Tests', () => {
     render(<App />);
     expect(screen.getByText(/Non-Accepting State Reached/i)).toBeDefined();
     expect(screen.getByText(/q_dead/i)).toBeDefined();
+  });
+
+  it('redirects unauthenticated users to /login', () => {
+    // Clear the session so the user is logged out
+    localStorage.clear();
+    window.history.pushState({}, 'Dashboard', '/');
+    render(<App />);
+    // Should see the login page, not the dashboard
+    expect(screen.getByRole('heading', { name: /sign in/i })).toBeDefined();
+    expect(screen.queryByText(/Continue Learning/i)).toBeNull();
   });
 });

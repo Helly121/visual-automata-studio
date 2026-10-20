@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FlaskConical,
@@ -11,10 +11,15 @@ import {
   Cpu,
   Menu,
   X,
+  User,
+  LogOut,
+  LogIn,
+  ChevronDown,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/features/auth/AuthContext';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -57,6 +62,98 @@ function NavItem({
   );
 }
 
+// ─── User account menu ────────────────────────────────────────────────────────
+
+function UserAccountMenu({ onClose }: { onClose?: () => void }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleLogout = async () => {
+    setOpen(false);
+    onClose?.();
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  const handleProfile = () => {
+    setOpen(false);
+    onClose?.();
+    navigate('/profile');
+  };
+
+  if (!user) {
+    return (
+      <NavLink
+        to="/login"
+        onClick={onClose}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors duration-150"
+      >
+        <LogIn className="w-4 h-4 flex-shrink-0" />
+        Sign in
+      </NavLink>
+    );
+  }
+
+  const initials = user.displayName[0].toUpperCase();
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Account menu"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150"
+      >
+        <div className="w-6 h-6 rounded-lg bg-primary-100 dark:bg-primary-950 flex items-center justify-center flex-shrink-0">
+          <span className="text-[11px] font-bold text-primary-700 dark:text-primary-300">{initials}</span>
+        </div>
+        <span className="flex-1 text-left truncate text-xs">{user.displayName}</span>
+        <ChevronDown className={cn('w-3.5 h-3.5 text-gray-400 transition-transform', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-card-hover py-1 z-50 animate-fade-in"
+        >
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+            <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user.displayName}</p>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
+          </div>
+          <button
+            role="menuitem"
+            onClick={handleProfile}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <User className="w-3.5 h-3.5" /> Profile &amp; Settings
+          </button>
+          <button
+            role="menuitem"
+            onClick={handleLogout}
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
 
@@ -91,6 +188,7 @@ export function Sidebar() {
           {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
         </button>
+        <UserAccountMenu />
       </div>
 
       {/* VIT attribution */}
@@ -164,6 +262,7 @@ export function MobileNav() {
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
               </button>
+              <UserAccountMenu onClose={() => setOpen(false)} />
             </div>
           </div>
         </>
