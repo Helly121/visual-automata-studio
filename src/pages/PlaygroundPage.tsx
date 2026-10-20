@@ -3,6 +3,8 @@ import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { Node, Edge } from '@xyflow/react';
 
+import { useNavigate } from 'react-router-dom';
+import { GitCompare } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui';
 import { cn } from '@/utils';
@@ -73,6 +75,13 @@ function PlaygroundInner() {
     clearHighlights();
   }, [clearHighlights]);
 
+  const navigate = useNavigate();
+
+  const handleGoToTransform = () => {
+    localStorage.setItem('vas-playground-machine', JSON.stringify(machine));
+    navigate('/transform?source=playground');
+  };
+
   const handleSaveProject = () => {
     const positions: Record<string, { x: number; y: number }> = {};
     getNodes().forEach((n) => { positions[n.id] = n.position; });
@@ -115,6 +124,15 @@ function PlaygroundInner() {
         description="Design, simulate, and explore finite automata interactively."
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGoToTransform}
+              disabled={nodes.length === 0}
+              leftIcon={<GitCompare className="w-3.5 h-3.5" />}
+            >
+              Transform
+            </Button>
             <Button variant="outline" size="sm" onClick={handleSaveProject} disabled={nodes.length === 0}>
               Save
             </Button>

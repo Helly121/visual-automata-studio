@@ -15,6 +15,7 @@ import {
   LogOut,
   LogIn,
   ChevronDown,
+  GitCompare,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/utils';
@@ -24,6 +25,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/playground', label: 'Playground', icon: FlaskConical },
+  { to: '/transform', label: 'Transformations', icon: GitCompare },
   { to: '/learn', label: 'Learn', icon: BookOpen },
   { to: '/challenges', label: 'Challenges', icon: Trophy },
   { to: '/projects', label: 'My Projects', icon: FolderOpen },
