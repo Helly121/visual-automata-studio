@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { LearningState, ChallengeSubmission } from './types.ts';
-import { defaultStorage, MemoryStorageAdapter, type StorageAdapter } from './storageAdapter.ts';
+import { defaultStorage, type StorageAdapter } from './storageAdapter.ts';
 import type { Unit } from '../../types/index.ts';
 
 const STORAGE_KEY = 'vas_learning_progress_v1';
@@ -18,17 +18,12 @@ export const EMPTY_STATE: LearningState = {
 
 export const INITIAL_STATE: LearningState = {
   version: 1,
-  completedLessons: {
-    // Pre-populate initial syllabus baseline to preserve Phase 1 consistency
-    'fa-01-alphabets': { completedAt: '2026-10-15T10:00:00Z', score: 100 },
-    'fa-02-dfa': { completedAt: '2026-10-16T12:00:00Z', score: 100 },
-    'fa-03-dfa-examples': { completedAt: '2026-10-17T14:00:00Z', score: 100 },
-  },
+  completedLessons: {},
   completedChallenges: {},
   challengeAttempts: {},
-  rewardedIds: ['lesson:fa-01-alphabets', 'lesson:fa-02-dfa', 'lesson:fa-03-dfa-examples'],
-  totalXP: 450,
-  streak: 5,
+  rewardedIds: [],
+  totalXP: 0,
+  streak: 0,
   lastActiveDate: new Date().toISOString().split('T')[0],
 };
 
@@ -58,21 +53,15 @@ export class ProgressManager {
   }
 
   private getInitialState(): LearningState {
-    if (this.adapter instanceof MemoryStorageAdapter) {
-      return {
-        ...EMPTY_STATE,
-        completedLessons: {},
-        completedChallenges: {},
-        challengeAttempts: {},
-        rewardedIds: [],
-      };
-    }
     return {
-      ...INITIAL_STATE,
-      completedLessons: { ...INITIAL_STATE.completedLessons },
-      completedChallenges: { ...INITIAL_STATE.completedChallenges },
-      challengeAttempts: { ...INITIAL_STATE.challengeAttempts },
-      rewardedIds: [...INITIAL_STATE.rewardedIds],
+      ...EMPTY_STATE,
+      completedLessons: {},
+      completedChallenges: {},
+      challengeAttempts: {},
+      rewardedIds: [],
+      totalXP: 0,
+      streak: 0,
+      lastActiveDate: new Date().toISOString().split('T')[0],
     };
   }
 
@@ -82,6 +71,23 @@ export class ProgressManager {
       if (!data) return this.getInitialState();
       const parsed = JSON.parse(data) as LearningState;
       if (parsed.version !== 1) return this.getInitialState();
+
+      // Clean up legacy pre-seeded mock state so all new users start from zero
+      if (
+        parsed.totalXP === 450 &&
+        parsed.completedLessons?.['fa-01-alphabets']?.completedAt === '2026-10-15T10:00:00Z' &&
+        parsed.completedLessons?.['fa-02-dfa']?.completedAt === '2026-10-16T12:00:00Z' &&
+        parsed.completedLessons?.['fa-03-dfa-examples']?.completedAt === '2026-10-17T14:00:00Z'
+      ) {
+        const fresh = this.getInitialState();
+        try {
+          this.adapter.setItem(STORAGE_KEY, JSON.stringify(fresh));
+        } catch {
+          // ignore
+        }
+        return fresh;
+      }
+
       return parsed;
     } catch {
       return this.getInitialState();

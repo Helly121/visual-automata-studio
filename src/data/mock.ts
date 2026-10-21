@@ -123,9 +123,9 @@ export const exampleAutomata: ExampleAutomaton[] = [
 ];
 
 export const mockProgress = {
-  totalXP: 450,
-  streak: 5,
-  completedLessons: 3,
+  totalXP: 0,
+  streak: 0,
+  completedLessons: 0,
   totalLessons: 38,
   lastActiveAt: '2026-10-18T10:00:00Z',
 };
