@@ -5,8 +5,8 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { useLearningProgress, progressManager } from '@/features/learning';
 import { units } from '@/data/units';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Button } from '@/components/ui';
-import { cn } from '@/utils';
+import { Button, Badge } from '@/components/ui';
+import { cn, getRankInfo } from '@/utils';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -15,6 +15,7 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const { state } = useLearningProgress();
   const stats = progressManager.getProgressStats(units);
+  const rankInfo = getRankInfo(state.totalXP);
 
   const [isEditing, setIsEditing] = useState(false);
   const [nameInput, setNameInput] = useState(user?.displayName ?? '');
@@ -71,9 +72,14 @@ export function ProfilePage() {
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-              {user?.displayName ?? 'Guest'}
-            </h2>
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+                {user?.displayName ?? 'Guest'}
+              </h2>
+              <Badge variant="purple" className="text-[10px]">
+                Level {rankInfo.level} · {rankInfo.title}
+              </Badge>
+            </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{user?.email ?? '—'}</p>
           </div>
         </div>

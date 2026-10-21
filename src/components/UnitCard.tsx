@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/utils';
 import { ProgressBar, StatusBadge } from '@/components/ui';
+import { useLearningProgress } from '@/features/learning';
 import type { Unit } from '@/types';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -31,9 +32,14 @@ interface UnitCardProps {
 
 export function UnitCard({ unit, compact = false }: UnitCardProps) {
   const navigate = useNavigate();
+  const { isLessonCompleted } = useLearningProgress();
   const Icon = iconMap[unit.icon] ?? Cpu;
   const colors = colorMap[unit.color] ?? colorMap.blue;
-  const pct = unit.totalLessons > 0 ? Math.round((unit.completedLessons / unit.totalLessons) * 100) : 0;
+
+  const completedCount = unit.lessons.filter((l) => isLessonCompleted(l.id)).length;
+  const totalCount = unit.lessons.length;
+  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const unitStatus = pct === 100 ? 'completed' : pct > 0 ? 'in-progress' : unit.status;
 
   return (
     <div
@@ -85,11 +91,11 @@ export function UnitCard({ unit, compact = false }: UnitCardProps) {
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                {unit.completedLessons}/{unit.totalLessons} lessons
+                {completedCount}/{totalCount} lessons
               </span>
               <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{pct}%</span>
             </div>
-            <ProgressBar value={unit.completedLessons} max={unit.totalLessons} />
+            <ProgressBar value={completedCount} max={totalCount} />
           </div>
         </div>
       </div>
@@ -97,7 +103,7 @@ export function UnitCard({ unit, compact = false }: UnitCardProps) {
       {/* Status */}
       {!compact && (
         <div className="mt-4 flex items-center justify-between">
-          <StatusBadge status={unit.status === 'available' ? 'available' : unit.status === 'in-progress' ? 'in-progress' : 'completed'} />
+          <StatusBadge status={unitStatus === 'available' ? 'available' : unitStatus === 'in-progress' ? 'in-progress' : 'completed'} />
           <span className="text-[10px] text-gray-400 dark:text-gray-500">{unit.estimatedHours}h estimated</span>
         </div>
       )}
