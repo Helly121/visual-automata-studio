@@ -39,6 +39,32 @@ const typeColors: Record<string, { bg: string; text: string; border: string }> =
   cfg: { bg: 'bg-cyan-50 dark:bg-cyan-950', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-800' },
 };
 
+function createNewProject(title: string, desc: string, type: ProjectType): Project {
+  const timestamp = new Date().toISOString();
+  return {
+    id: `proj-${Date.now()}`,
+    name: title.trim(),
+    description: desc.trim() || `New ${projectTypeLabel[type]} project`,
+    type: type,
+    unitId: type === 'dfa' || type === 'nfa' ? 'finite-automata' : 'pushdown-automata',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    stateCount: type === 're' ? undefined : 2,
+    transitionCount: type === 're' ? undefined : 2,
+  };
+}
+
+function createDuplicateProject(project: Project): Project {
+  const timestamp = new Date().toISOString();
+  return {
+    ...project,
+    id: `proj-${Date.now()}`,
+    name: `${project.name} (Copy)`,
+    updatedAt: timestamp,
+    createdAt: timestamp,
+  };
+}
+
 export function ProjectsPage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
@@ -67,18 +93,7 @@ export function ProjectsPage() {
     e.preventDefault();
     if (!newTitle.trim()) return;
 
-    const newProject: Project = {
-      id: `proj-${Date.now()}`,
-      name: newTitle.trim(),
-      description: newDesc.trim() || `New ${projectTypeLabel[newType]} project`,
-      type: newType,
-      unitId: newType === 'dfa' || newType === 'nfa' ? 'finite-automata' : 'pushdown-automata',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      stateCount: newType === 're' ? undefined : 2,
-      transitionCount: newType === 're' ? undefined : 2,
-    };
-
+    const newProject = createNewProject(newTitle, newDesc, newType);
     setProjects([newProject, ...projects]);
     setIsCreateModalOpen(false);
     setNewTitle('');
@@ -88,13 +103,7 @@ export function ProjectsPage() {
 
   const handleDuplicate = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
-    const duplicated: Project = {
-      ...project,
-      id: `proj-${Date.now()}`,
-      name: `${project.name} (Copy)`,
-      updatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    };
+    const duplicated = createDuplicateProject(project);
     setProjects([duplicated, ...projects]);
   };
 

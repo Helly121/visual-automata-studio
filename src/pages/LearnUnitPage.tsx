@@ -82,9 +82,14 @@ export function LearnUnitPage() {
           </h2>
         </div>
         <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
-          {unit.lessons.map((lesson) => {
+          {unit.lessons.map((lesson, idx) => {
             const isCompleted = isLessonCompleted(lesson.id);
-            const isAccessible = lesson.status !== 'locked';
+            const isAccessible =
+              isCompleted ||
+              lesson.status !== 'locked' ||
+              idx === 0 ||
+              isLessonCompleted(unit.lessons[idx - 1].id);
+
             return (
               <div
                 key={lesson.id}
@@ -92,7 +97,7 @@ export function LearnUnitPage() {
                   'flex items-center gap-4 px-5 py-4 transition-colors',
                   isAccessible
                     ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 group'
-                    : 'opacity-50',
+                    : 'opacity-50 cursor-not-allowed',
                 )}
                 role={isAccessible ? 'button' : undefined}
                 tabIndex={isAccessible ? 0 : undefined}
@@ -101,17 +106,17 @@ export function LearnUnitPage() {
               >
                 {/* Status icon */}
                 <div className={cn(
-                  'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0',
-                  isCompleted && 'bg-green-50 dark:bg-green-950',
-                  !isCompleted && isAccessible && 'bg-primary-50 dark:bg-primary-950',
-                  !isAccessible && 'bg-gray-50 dark:bg-gray-800',
+                  'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all',
+                  isCompleted && 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300',
+                  !isCompleted && isAccessible && 'bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 group-hover:scale-105',
+                  !isAccessible && 'bg-gray-50 dark:bg-gray-800 text-gray-400',
                 )}>
                   {isCompleted ? (
                     <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                   ) : !isAccessible ? (
                     <Lock className="w-4 h-4 text-gray-400 dark:text-gray-600" />
                   ) : (
-                    <Play className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    <Play className="w-4 h-4 text-primary-600 dark:text-primary-400 fill-primary-600 dark:fill-primary-400" />
                   )}
                 </div>
 
@@ -121,14 +126,19 @@ export function LearnUnitPage() {
                     <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
                       {lesson.order}.
                     </span>
-                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
                       {lesson.title}
                     </span>
+                    {isCompleted && (
+                      <span className="text-[10px] font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/80 px-1.5 py-0.2 rounded">
+                        Done (+50 XP)
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{lesson.description}</p>
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {lesson.topics.slice(0, 3).map((t) => (
-                      <span key={t} className="text-[9px] text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded-md">
+                      <span key={t} className="text-[9px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 rounded-md">
                         {t}
                       </span>
                     ))}
@@ -138,7 +148,7 @@ export function LearnUnitPage() {
                 <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1 flex-shrink-0">
                   <Clock className="w-3 h-3" /> {formatDuration(lesson.duration)}
                 </span>
-                <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </div>
             );
           })}

@@ -45,3 +45,47 @@ export const difficultyColor: Record<string, string> = {
   medium: 'text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950',
   hard: 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950',
 };
+
+export interface RankInfo {
+  level: number;
+  title: string;
+  nextLevelXP: number;
+  currentLevelBaseXP: number;
+  progressPercent: number;
+}
+
+export function getRankInfo(xp: number): RankInfo {
+  const levels = [
+    { level: 1, title: 'Novice Learner', baseXP: 0, nextXP: 100 },
+    { level: 2, title: 'Automaton Apprentice', baseXP: 100, nextXP: 300 },
+    { level: 3, title: 'State Explorer', baseXP: 300, nextXP: 600 },
+    { level: 4, title: 'Grammar Craftsman', baseXP: 600, nextXP: 1000 },
+    { level: 5, title: 'Turing Pioneer', baseXP: 1000, nextXP: 1500 },
+    { level: 6, title: 'Master of Computation', baseXP: 1500, nextXP: 2500 },
+  ];
+
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (xp >= levels[i].baseXP) {
+      const cur = levels[i];
+      const range = cur.nextXP - cur.baseXP;
+      const progressInLevel = Math.max(0, xp - cur.baseXP);
+      const progressPercent = Math.min(100, Math.round((progressInLevel / range) * 100));
+      return {
+        level: cur.level,
+        title: cur.title,
+        nextLevelXP: cur.nextXP,
+        currentLevelBaseXP: cur.baseXP,
+        progressPercent,
+      };
+    }
+  }
+
+  return {
+    level: 1,
+    title: 'Novice Learner',
+    nextLevelXP: 100,
+    currentLevelBaseXP: 0,
+    progressPercent: 0,
+  };
+}
+

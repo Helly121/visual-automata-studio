@@ -12,9 +12,9 @@ export const units: Unit[] = [
     icon: 'Workflow',
     color: 'blue',
     accentColor: '#2563EB',
-    status: 'in-progress',
+    status: 'available',
     totalLessons: 8,
-    completedLessons: 3,
+    completedLessons: 0,
     estimatedHours: 6,
     topics: ['Alphabets & Strings', 'Formal Languages', 'DFA', 'NFA', 'ε-NFA', 'Subset Construction', 'DFA Minimisation', 'Pumping Lemma'],
     lessons: [
@@ -25,7 +25,7 @@ export const units: Unit[] = [
         description: 'The foundational vocabulary of formal language theory.',
         duration: 20,
         order: 1,
-        status: 'completed',
+        status: 'available',
         topics: ['Alphabet', 'Strings', 'Concatenation', 'Kleene star', 'Formal language'],
       },
       {
@@ -35,7 +35,7 @@ export const units: Unit[] = [
         description: 'Define DFAs formally, draw state diagrams, and trace computation.',
         duration: 35,
         order: 2,
-        status: 'completed',
+        status: 'locked',
         topics: ['5-tuple definition', 'Transition function', 'Extended transition function', 'Accepted language'],
       },
       {
@@ -45,7 +45,7 @@ export const units: Unit[] = [
         description: 'Build DFAs for common languages and develop design intuition.',
         duration: 40,
         order: 3,
-        status: 'completed',
+        status: 'locked',
         topics: ['Language design', 'Odd/even patterns', 'Binary divisibility', 'Complement DFA'],
       },
       {
@@ -55,7 +55,7 @@ export const units: Unit[] = [
         description: 'Introduce NFA computation, ε-transitions, and expressive power.',
         duration: 35,
         order: 4,
-        status: 'available',
+        status: 'locked',
         topics: ['NFA definition', 'ε-transitions', 'ε-closure', 'NFA acceptance'],
       },
       {

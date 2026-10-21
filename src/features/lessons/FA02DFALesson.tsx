@@ -138,7 +138,7 @@ function Def({ term, children }: { term: string; children: React.ReactNode }) {
     <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-4 shadow-card mb-4">
       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">Definition</p>
       <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1.5">{term}</p>
-      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{children}</p>
+      <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{children}</div>
     </div>
   );
 }
